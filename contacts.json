@@ -1,0 +1,30 @@
+[
+  {
+    "id": "contact_1",
+    "name": "Anas",
+    "avatar": "imgs/avatar.png",
+    "status": "online",
+    "lastSeen": "2025-09-12T16:45:00"
+  },
+  {
+    "id": "contact_2",
+    "name": "Mona",
+    "avatar": "imgs/female-avatar.png",
+    "status": "offline",
+    "lastSeen": "2025-09-12T15:30:00"
+  },
+  {
+    "id": "contact_3",
+    "name": "Omar",
+    "avatar": "imgs/avatar.png",
+    "status": "online",
+    "lastSeen": "2025-09-12T17:05:00"
+  },
+  {
+    "id": "contact_4",
+    "name": "Reem",
+    "avatar": "imgs/female-avatar.png",
+    "status": "online",
+    "lastSeen": "2025-09-12T17:05:00"
+  }
+]

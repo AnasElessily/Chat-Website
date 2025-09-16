@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="./css/style.css" rel="stylesheet" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+    <title>Chat Site</title>
+  </head>
+  <body class="bg-white dark:bg-gray-800">
+    <div class="flex w-full">
+      <!-- Icons Bar Container -->
+      <div id="icons-container" class="flex flex-col justify-between py-5">
+        <!-- Top Icons -->
+        <ul class="flex flex-col items-center space-y-4">
+          <div class="w-10">
+            <img src="imgs/logo.png" alt="" class="" />
+          </div>
+          <li id="chat-icon">
+            <i class="fa-solid fa-comment"></i>
+          </li>
+          <li id="contacts-icon">
+            <i class="fa-solid fa-user"></i>
+          </li>
+          <li id="calls-icon">
+            <i class="fa-solid fa-phone"></i>
+          </li>
+        </ul>
+
+        <!-- Bottom Icons -->
+        <ul class="flex flex-col items-center space-y-4">
+          <li id="night-mode-icon">
+            <i class="fa-solid fa-moon"></i>
+          </li>
+          <li id="starred-messages-icon">
+            <i class="fa-solid fa-star"></i>
+          </li>
+          <li id="archived-chats-icon">
+            <i class="fa-solid fa-box-archive"></i>
+          </li>
+          <div class="border w-5"></div>
+          <li id="settings-icon">
+            <i class="fa-solid fa-gear"></i>
+          </li>
+          <div id="profile-icon" class="w-8 cursor-pointer">
+            <img id="profile-icon-image" src="" alt="" />
+          </div>
+        </ul>
+      </div>
+
+      <!-- Sidebar Container -->
+      <div id="sidebar-container">
+        <!-- Chats Sidebar -->
+        <div
+          id="chats-sidebar-container"
+          class="hidden w-2xs py-6 px-2 h-screen flex flex-col"
+        >
+          <!-- Label -->
+          <label class="mb-5 block font-bold text-xl shrink-0">Chats</label>
+
+          <!-- Search Bar -->
+          <div
+            class="bg-gray-200 rounded-lg p-2 focus-within:ring-2 focus-within:ring-indigo-300 mb-5 shrink-0"
+          >
+            <i class="fa-solid fa-magnifying-glass mr-2 text-gray-400"></i>
+            <input
+              type="search"
+              placeholder="Search for chat"
+              class="focus:outline-none placeholder:text-gray-400"
+            />
+          </div>
+
+          <!-- Empty State -->
+          <div
+            id="empty-chats-sidebar"
+            class="flex flex-col flex-1 justify-center items-center space-y-1.5"
+          >
+            <div
+              class="w-14 h-14 bg-gray-300 rounded-full flex justify-center items-center mb-5"
+            >
+              <i class="fa-solid fa-comment fa-xl opacity-60"></i>
+            </div>
+            <h3 class="font-bold">No Chats Yet</h3>
+            <p class="text-sm opacity-80 text-gray-700 text-center">
+              Select a contact from contacts list to chat with.
+            </p>
+          </div>
+
+          <!-- Chats -->
+          <div
+            id="chats-sidebar"
+            class="hidden flex flex-col flex-1 overflow-y-auto"
+          >
+            <!-- Chat -->
+            <!-- <div
+              class="flex space-x-2 items-center hover:bg-gray-200 p-2 rounded-lg"
+            >
+              <img
+                src="imgs/profile.png"
+                alt=""
+                class="w-12 object-cover rounded-full"
+              />
+              <div class="min-w-0">
+                <h3 class="font-bold">Anas</h3>
+                <p class="opacity-60 truncate">
+                  Eh el akhbarrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
+                </p>
+              </div>
+            </div> -->
+          </div>
+        </div>
+
+        <!-- Contacts Sidebar -->
+        <div
+          id="contacts-sidebar-container"
+          class="hidden w-2xs py-6 px-2 h-screen flex flex-col"
+        >
+          <!-- Label -->
+          <label class="mb-5 block font-bold text-xl shrink-0">Contacts</label>
+
+          <!-- Search Bar -->
+          <div
+            class="bg-gray-200 rounded-lg p-2 focus-within:ring-2 focus-within:ring-indigo-300 mb-5 shrink-0"
+          >
+            <i class="fa-solid fa-magnifying-glass mr-2 text-gray-400"></i>
+            <input
+              id="contacts-search"
+              type="search"
+              placeholder="Search for contact"
+              class="focus:outline-none placeholder:text-gray-400"
+            />
+          </div>
+
+          <!-- Empty State -->
+          <div
+            id="empty-contacts-sidebar"
+            class="hidden flex flex-col flex-1 justify-center items-center space-y-1.5"
+          >
+            <div
+              class="w-14 h-14 bg-gray-300 rounded-full flex justify-center items-center mb-5"
+            >
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <h3 class="font-bold">No contacts Yet</h3>
+            <p class="text-sm opacity-80 text-gray-700 text-center">
+              Add a contact to chat with.
+            </p>
+          </div>
+
+          <!-- Contacts -->
+          <div
+            id="contacts-sidebar"
+            class="hidden flex flex-col flex-1 overflow-y-auto"
+          ></div>
+        </div>
+      </div>
+
+      <!-- Main Section Container -->
+      <main id="main-section" class="h-screen flex flex-col flex-1">
+        <!-- Chat Empty State -->
+        <div
+          id="main-empty-chat"
+          class="h-screen flex flex-col flex-1 justify-center items-center space-y-1.5"
+        >
+          <div
+            class="w-14 h-14 bg-gray-300 rounded-full flex justify-center items-center mb-5"
+          >
+            <i class="fa-solid fa-comment fa-xl opacity-60"></i>
+          </div>
+          <h3 class="font-bold">No Chat Selected</h3>
+          <p class="text-sm opacity-80 text-gray-700">
+            Select a chat from the chat menu.
+          </p>
+        </div>
+
+        <!-- Chat -->
+        <div
+          id="main-chat-container"
+          class="hidden flex-1 h-screen flex flex-col"
+        >
+          <header class="flex justify-between py-4 px-3 bg-gray-200">
+            <div class="flex items-center space-x-2">
+              <img
+                id="contact-avatar"
+                src=""
+                alt=""
+                class="w-10 h-10 rounded-full flex-shrink-0"
+              />
+              <h3 id="contact-name" class="font-bold"></h3>
+            </div>
+            <div class="flex items-center space-x-6">
+              <i class="fa-solid fa-phone fa-lg"></i>
+              <i class="fa-solid fa-video fa-lg"></i>
+              <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+              <i class="fa-solid fa-ellipsis-vertical fa-lg"></i>
+            </div>
+          </header>
+
+          <!-- Chat Content -->
+          <main
+            id="chat-content"
+            class="flex-1 overflow-y-auto flex flex-col gap-2 p-4 bg-gray-100"
+          ></main>
+
+          <!-- Message Input -->
+          <div class="flex items-center py-4 w-full space-x-5 px-3">
+            <i class="fa-solid fa-paperclip"></i>
+            <i class="fa-regular fa-face-smile"></i>
+            <input
+              id="message-input"
+              type="text"
+              placeholder="Type a message"
+              class="flex-1 focus:outline-none bg-gray-200 p-2 rounded"
+            />
+            <i class="fa-solid fa-microphone"></i>
+            <i id="send-button" class="fa-solid fa-paper-plane"></i>
+          </div>
+        </div>
+      </main>
+    </div>
+    <script src="main.js"></script>
+  </body>
+</html>

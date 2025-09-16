@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+#icons-container li{
+    @apply cursor-pointer text-gray-600 px-1 rounded hover:bg-gray-300 duration-200
+}
+
+#chats-sidebar div{
+    @apply cursor-pointer
+}
+
+#contacts-sidebar div{
+    @apply cursor-pointer
+}
+
+.active{
+    @apply bg-gray-300 rounded
+}
