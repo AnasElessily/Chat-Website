@@ -1,32 +1,45 @@
 // Storage
-class Storage {
+class StorageManager {
   constructor() {
-    this.storage_keys = {
+    this.keys = {
       contacts: "contacts",
       conversations: "conversations",
       messages: "messages",
-      current_user: "current_user",
+      currentUser: "currentUser",
+      activeTab: "activeTab",
     };
     this.initializeStorage();
   }
 
   initializeStorage() {
-    if (!localStorage.getItem(this.storage_keys.contacts))
-      localStorage.setItem(this.storage_keys.contacts, JSON.stringify({}));
-    if (!localStorage.getItem(this.storage_keys.conversations))
-      localStorage.setItem(this.storage_keys.conversations, JSON.stringify({}));
-    if (!localStorage.getItem(this.storage_keys.messages))
-      localStorage.setItem(this.storage_keys.messages, JSON.stringify({}));
+    // Initializing the keys that their value is an object except currentUser
+    Object.values(this.keys).slice(0, 3).forEach(key => {
+        if (!this.getItem(key))
+          this.setItem(key, {});
+      });
+  }
+
+  // Parsing the arrays from local storage
+  getItem(key) {
+    try {
+      return JSON.parse(localStorage.getItem(key));
+    } catch {
+      return null;
+    }
+  }
+
+  // Stringifying the arrays to local storage
+  setItem(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
   }
 
   // Contact Management
   getContacts() {
-    return JSON.parse(localStorage.getItem(this.storage_keys.contacts)) || {};
+    return this.getItem(this.keys.contacts) || {};
   }
 
   getContact(contactId) {
-    const contacts = this.getContacts();
-    return contacts[contactId] || null;
+    return this.getContacts()[contactId] || null;
   }
 
   addContact(contact) {
@@ -39,20 +52,41 @@ class Storage {
       lastSeen: contact.lastSeen || new Date().toISOString(),
       status: contact.status || "offline",
     };
-    localStorage.setItem(this.storage_keys.contacts, JSON.stringify(contacts));
+    this.setItem(this.keys.contacts, contacts);
     return contacts[contact.id];
   }
 
   // Conversations Management
   getConversations() {
-    return (
-      JSON.parse(localStorage.getItem(this.storage_keys.conversations)) || {}
-    );
+    return this.getItem(this.keys.conversations) || {};
   }
 
   getConversation(conversationId) {
+    return this.getConversations()[conversationId] || null;
+  }
+
+  getConversationsWithLastMessage() {
     const conversations = this.getConversations();
-    return conversations[conversationId] || null;
+    const contacts = this.getContacts();
+    const currentUser = this.getCurrentUser();
+
+    return Object.values(conversations)
+      .filter(conv => conv.lastMessage) // Get only the conversations that have messages
+      .sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity))
+      .map(conv => {
+        const contactId = conv.participants.find(
+          id => id !== currentUser?.id
+        );
+        const contact = contacts[contactId];
+
+        return {
+          ...conv,
+          contactId,
+          contactName: contact?.name || contact?.phone,
+          contactAvatar: contact?.avatar || "imgs/avatar.png",
+          lastMessageText: conv.lastMessage?.content || "No messages yet",
+        };
+      });
   }
 
   createConversation(participants, type = "individual") {
@@ -63,28 +97,34 @@ class Storage {
 
     conversations[conversationId] = {
       id: conversationId,
-      participants: participants,
-      type: type,
+      participants,
+      type,
       createdAt: new Date().toISOString(),
       lastActivity: new Date().toISOString(),
       lastMessage: null,
       unreadCount: 0,
     };
-    localStorage.setItem(
-      this.storage_keys.conversations,
-      JSON.stringify(conversations)
-    );
+
+    this.setItem(this.keys.conversations, conversations);
     return conversations[conversationId];
+  }
+
+  findConversationBetween(userId1, userId2) {
+    return Object.values(this.getConversations()).find(
+      conv =>
+        conv.type === "individual" &&
+        conv.participants.includes(userId1) &&
+        conv.participants.includes(userId2)
+    );
   }
 
   // Chats Managments
   getAllMessages() {
-    return JSON.parse(localStorage.getItem(this.storage_keys.messages)) || {};
+    return this.getItem(this.keys.messages) || {};
   }
 
   getMessages(conversationId) {
-    const messages = this.getAllMessages();
-    return messages[conversationId] || null;
+    return this.getAllMessages()[conversationId] || null;
   }
 
   addMessage(conversationId, message) {
@@ -95,7 +135,7 @@ class Storage {
 
     const newMessage = {
       id: messageId,
-      conversationId: conversationId,
+      conversationId,
       senderId: message.senderId,
       content: message.content,
       type: message.type || "text",
@@ -104,9 +144,12 @@ class Storage {
       replyTo: message.replyTo || null,
     };
 
-    if (!messages[conversationId]) messages[conversationId] = [];
+    if (!messages[conversationId])
+      messages[conversationId] = [];
+
     messages[conversationId].push(newMessage);
-    localStorage.setItem(this.storage_keys.messages, JSON.stringify(messages));
+
+    this.setItem(this.keys.messages, messages);
     this.updateConversationLastActivity(conversationId, newMessage);
     return newMessage;
   }
@@ -114,64 +157,112 @@ class Storage {
   updateConversationLastActivity(conversationId, lastMessage) {
     const conversations = this.getConversations();
     const conversation = conversations[conversationId];
-    if (conversations) {
-      conversation.lastActivity = new Date().toISOString;
+
+    if (conversation) {
+      conversation.lastActivity = new Date().toISOString();
       conversation.lastMessage = {
         content: lastMessage.content,
         timestamp: lastMessage.timestamp,
         senderId: lastMessage.senderId,
       };
-      localStorage.setItem(
-        this.storage_keys.conversations,
-        JSON.stringify(conversations)
-      );
+      this.setItem(this.keys.conversations, conversations);
     }
   }
 
   // Current User Management
   getCurrentUser() {
-    return (
-      JSON.parse(localStorage.getItem(this.storage_keys.current_user)) || null
-    );
+    return this.getItem(this.keys.currentUser) || null;
   }
 
   setCurrentUser(user) {
-    localStorage.setItem(this.storage_keys.current_user, JSON.stringify(user));
+    this.setItem(this.keys.currentUser, user);
+  }
+
+  // Tab Management
+  getActiveTab() {
+    return localStorage.getItem(this.keys.activeTab) || "chat-icon";
+  }
+
+  setActiveTab(tabId) {
+    localStorage.setItem(this.keys.activeTab, tabId);
   }
 }
 
-const chatStorage = new Storage();
-const contacts = Object.values(chatStorage.getContacts());
+// Global variables initialization
+const chatStorage = new StorageManager();
+let currentConversation = null;
+let cachedContacts = [];
 
-if (!chatStorage.getCurrentUser()) {
-  chatStorage.setCurrentUser({
-    id: "current_user_123",
-    name: "You",
-    avatar: "imgs/avatar.png",
-  });
+// DOM elements cache
+const elements = {
+  // Navigation management
+  iconsContainer: document.getElementById("icons-container"),
+  profileIconImage: document.getElementById("profile-icon-image"),
+
+  // Sidebars
+  // Chats sidebar
+  chatsSidebarContainer: document.getElementById("chats-sidebar-container"),
+  emptyChatsSidebar: document.getElementById("empty-chats-sidebar"),
+  chatsSidebar: document.getElementById("chats-sidebar"),
+  // Contacts sidebar
+  contactsSidebarContainer: document.getElementById(
+    "contacts-sidebar-container"
+  ),
+  emptyContactsSidebar: document.getElementById("empty-contacts-sidebar"),
+  contactsSidebar: document.getElementById("contacts-sidebar"),
+  contactsSearchInput: document.getElementById("contacts-search"),
+
+  // Main section management
+  emptyChatContainer: document.getElementById("main-empty-chat"),
+  mainChatContainer: document.getElementById("main-chat-container"),
+  headerContactAvatar: document.getElementById("contact-avatar"),
+  headerContactName: document.getElementById("contact-name"),
+  chatContentContainer: document.getElementById("chat-content"),
+
+  // Message input
+  messageInput: document.getElementById("message-input"),
+  sendButton: document.getElementById("send-button"),
+};
+
+// Initialization functions
+function initializeApp() {
+  // Set current user if he doesn't exist
+  if (!chatStorage.getCurrentUser()) {
+    chatStorage.setCurrentUser({
+      id: "current_user_123",
+      name: "You",
+      avatar: "imgs/avatar.png",
+    });
+  }
+
+  // Set user profile image
+  elements.profileIconImage.src = chatStorage.getCurrentUser().avatar;
+
+  // Load contacts from storage
+  cachedContacts = Object.values(chatStorage.getContacts())
+
+  // Load contacts and check if there is any new contact
+  fetchContacts()
 }
 
-// Get active state
-window.addEventListener("load", () => {
-  const lastActiveIcon = localStorage.getItem("activeTab") || "chat-icon";
-  const target = document.getElementById(lastActiveIcon);
-  if (target) {
-    setActiveIcon(target);
-    displaySection(lastActiveIcon);
-  }
-  fetchContacts();
-});
+function initializeEventListeners(){
+  // Navigation events
+  elements.iconsContainer.addEventListener("click", handleNavigationClick)
 
-// Icons section management
-const iconsContainer = document.getElementById("icons-container");
-const profileIconImage = document.getElementById("profile-icon-image");
+  // Search events
+  elements.contactsSearchInput.addEventListener("input", handleContactsSearch)
 
-profileIconImage.src = chatStorage.getCurrentUser().avatar;
+  // Sidebar events
+  elements.chatsSidebar.addEventListener("click", handleChatsSidebarClick)
+  elements.contactsSidebar.addEventListener("click", handleContactsSidebarClick)
 
-let messageInput = document.getElementById("message-input");
-let sendButton = document.getElementById("send-button");
+  // Message events
+  elements.sendButton.addEventListener("click", sendMessage);
+  elements.messageInput.addEventListener("keypress", handleMessageKeyPress)
+}
 
-iconsContainer.addEventListener("click", function (e) {
+// Event handlers
+function handleNavigationClick(e){
   const target = e.target.closest("li"); // Find nearest <li>
   if (!target) return;
 
@@ -179,82 +270,61 @@ iconsContainer.addEventListener("click", function (e) {
   displaySection(target.id);
 
   localStorage.setItem("activeTab", target.id);
-});
+}
 
+function handleContactsSearch(e){
+  const value = e.target.value.toLowerCase();
+  if (value) {
+    const filteredContacts = cachedContacts.filter(contact =>
+      contact.name.toLowerCase().includes(value)
+    );
+    displayContacts(filteredContacts);
+  }
+  else
+    displayContacts(cachedContacts)
+}
+
+function handleChatsSidebarClick(e){
+  // Find the chat card container
+  const chatDiv = e.target.closest(".chat-card");
+  if (!chatDiv) return; // Clicked outside of a chat card
+
+  openChat(chatDiv.id);
+}
+
+function handleContactsSidebarClick(e){
+  // Find the contact card container
+  const contactDiv = e.target.closest(".contact-card");
+  if (!contactDiv) return; // Clicked outside of a contact card
+
+  openChat(contactDiv.id);
+}
+
+function handleMessageKeyPress(e){
+  if(e.key === "Enter")
+    sendMessage()
+}
+
+// UI functions
 function setActiveIcon(target) {
   // Remove active class from the icon that has it
-  iconsContainer.querySelector(".active")?.classList.remove("active");
+  elements.iconsContainer.querySelector(".active")?.classList.remove("active");
 
   // Add active class to the clicked one
   target.classList.add("active");
 }
 
-// Sidebar Section Management
-// Chats sidebar
-const chatsSidebarContainer = document.getElementById(
-  "chats-sidebar-container"
-);
-const emptyChatsSidebar = document.getElementById("empty-chats-sidebar");
-const chatsSidebar = document.getElementById("chats-sidebar");
-
-// Contacts sidebar
-const contactsSidebarContainer = document.getElementById(
-  "contacts-sidebar-container"
-);
-const emptyContactsSidebar = document.getElementById("empty-contacts-sidebar");
-const contactsSidebar = document.getElementById("contacts-sidebar");
-
-const contactsSearchInput = document.getElementById("contacts-search");
-
-contactsSearchInput.addEventListener("input", function () {
-  const value = contactsSearchInput.value.toLowerCase();
-  if (value) {
-    const filteredContacts = contacts.filter((el) =>
-      el.name.toLowerCase().includes(value)
-    );
-    displayContacts(filteredContacts);
-  }
-});
-
-contactsSidebar.addEventListener("click", function (e) {
-  // Find the contact card container
-  const contactDiv = e.target.closest(".contact-item");
-  if (!contactDiv) return; // Clicked outside of a contact card
-
-  openChat(contactDiv.id);
-});
-
-async function fetchContacts() {
-  try {
-    const res = await fetch('contacts.json')
-    const contacts = await res.json()
-    const existingContacts = chatStorage.getContacts()
-
-    contacts.forEach(contact => {
-      if(!existingContacts[contact.id])
-        chatStorage.addContact(contact)
-    })
-
-    displayContacts(contacts)
-
-  } catch (error) {
-    console.error("Failed to fetch contacts:", error);
-  }
-}
-
 function displaySection(id) {
   if (id == "chat-icon") {
-    contactsSidebarContainer.classList.add("hidden");
-    chatsSidebarContainer.classList.remove("hidden");
-    toggleSection(
-      emptyChatsSidebar,
-      chatsSidebar,
-      chatStorage.getConversations()
-    );
+    elements.contactsSidebarContainer.classList.add("hidden");
+    elements.chatsSidebarContainer.classList.remove("hidden");
+    displayConversations();
   } else if (id == "contacts-icon") {
-    chatsSidebarContainer.classList.add("hidden");
-    contactsSidebarContainer.classList.remove("hidden");
-    toggleSection(emptyContactsSidebar, contactsSidebar, contacts);
+    elements.chatsSidebarContainer.classList.add("hidden");
+    elements.contactsSidebarContainer.classList.remove("hidden");
+    if (cachedContacts.length === 0)
+      cachedContacts = Object.values(chatStorage.getContacts());
+    displayContacts(cachedContacts)
   }
 }
 
@@ -268,56 +338,186 @@ function toggleSection(emptyContainer, filledContainer, items) {
   }
 }
 
-function displayContacts(contacts) {
-  contactsSidebar.innerHTML = contacts
-    .sort((a, b) => {
-      return a.name.localeCompare(b.name);
-    })
-    .map(
-      (contact) => `
-  <div id=${contact.id} class="contact-item flex justify-between items-center hover:bg-gray-200 p-2 rounded-lg">
-    <div class="flex space-x-2 items-center">
-      <img src="${contact.avatar}" class="w-12 h-12 object-cover rounded-full"/>
-      <div class="min-w-0">
-        <h3 class="font-bold">${contact.name}</h3>
-        <p class="opacity-60 truncate">Tap to chat</p>
-      </div>
-    </div>
-    <i class="fa-solid fa-ellipsis-vertical fa-lg"></i>
-  </div>
-`
-    )
-    .join("");
-}
+function displayConversations() {
+  const conversations = chatStorage.getConversationsWithLastMessage();
 
-// Main section management
-const mainContainer = document.getElementById("main-section");
-const emptyChatContainer = document.getElementById("main-empty-chat");
-const mainChatContainer = document.getElementById("main-chat-container");
-const headerContactAvatar = document.getElementById("contact-avatar");
-const headerContactName = document.getElementById("contact-name");
-const chatContentContainer = document.getElementById("chat-content");
+  toggleSection(elements.emptyChatsSidebar, elements.chatsSidebar, conversations);
 
-function openChat(id) {
-  const [contact] = contacts.filter((el) => el.id == id);
-  emptyChatContainer.classList.add("hidden");
-  mainChatContainer.classList.remove("hidden");
-  headerContactAvatar.src = contact.avatar;
-  headerContactName.innerHTML = contact.name;
-  chatContentContainer.innerHTML = ``;
-}
-
-// Message format
-/*
-<div class="self-end bg-blue-500 text-white rounded-lg px-3 py-2 max-w-xs space-y-2">
-            <p
-              class="break-words"
-            >
-              ya3ny masalan masalan masalan masalan masalan masalan masalan masalan masalan masalan masalan masalan masalan masalan masalan masalan masalan masalan masalan masalan masalan masalan 
-            </p>
-            <div class="relative opacity-90">
-              <i class="fa-solid fa-check-double"></i>
-              <span>12:35 pm</span>
+  if(conversations.length > 0){
+    elements.chatsSidebar.innerHTML = conversations
+      .map(conv => `
+        <div id="${conv.contactId}" class="chat-card flex space-x-2 items-center hover:bg-gray-200 p-2 rounded-lg cursor-pointer">
+            <img src="${conv.contactAvatar}" alt="" class="w-12 h-12 object-cover rounded-full"/>
+            <div class="min-w-0">
+                <h3 class="font-bold">${conv.contactName}</h3>
+                <p class="opacity-60 truncate">${conv.lastMessageText}</p>
             </div>
+        </div>
+      `)
+      .join("");
+  }
+}
+
+function displayContacts(contacts) {
+  toggleSection(elements.emptyContactsSidebar, elements.contactsSidebar, contacts)
+  if(contacts.length > 0){
+    const sortedContacts = [...contacts].sort((a, b) =>
+      a.name.localeCompare(b.name)
+    )
+
+    elements.contactsSidebar.innerHTML = sortedContacts
+      .map(
+        contact => `
+        <div id=${contact.id} class="contact-card flex justify-between items-center hover:bg-gray-200 p-2 rounded-lg">
+          <div class="flex space-x-2 items-center">
+            <img src="${contact.avatar}" class="w-12 h-12 object-cover rounded-full"/>
+          <div class="min-w-0">
+            <h3 class="font-bold">${contact.name}</h3>
+            <p class="opacity-60 truncate">Tap to chat</p>
           </div>
-*/
+        </div>
+        <i class="fa-solid fa-ellipsis-vertical fa-lg"></i>
+      </div>
+    `)
+    .join("");
+  }
+}
+
+function displayMessages(conversationId) {
+  const messages = chatStorage.getMessages(conversationId);
+  const currentUser = chatStorage.getCurrentUser();
+
+  if(!messages){
+    elements.chatContentContainer.innerHTML = ``
+    return
+  }
+
+  elements.chatContentContainer.innerHTML = messages
+    .map(message => {
+      const isCurrentUser = message.senderId === currentUser.id;
+      const time = new Date(message.timestamp).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      return `
+        <div class="${isCurrentUser ? "self-end" : "self-start"} max-w-xs">
+          <div class="${
+            isCurrentUser ? "bg-blue-500 text-white" : "bg-white text-black"
+          } rounded-lg px-3 py-2 space-y-2">
+              <p class="break-words">${message.content}</p>
+              <div class="relative opacity-90 text-right message-time">
+                  ${
+                    isCurrentUser
+                      ? '<i class="fa-solid fa-check-double mr-1"></i>'
+                      : ""
+                  }
+                  <span>${time}</span>
+              </div>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  elements.chatContentContainer.scrollTop = elements.chatContentContainer.scrollHeight;
+}
+
+// Chat handling functions
+function openChat(contactId) {
+  const contact = chatStorage.getContact(contactId)
+  const currentUser = chatStorage.getCurrentUser()
+  if(!contact) return
+
+  const conv = chatStorage.findConversationBetween(
+    currentUser.id,
+    contactId
+  );
+
+  if (!conv)
+    conv = chatStorage.createConversation([currentUser.id, contactId]);
+
+  elements.emptyChatContainer.classList.add("hidden");
+  elements.mainChatContainer.classList.remove("hidden");
+  elements.headerContactAvatar.src = contact.avatar;
+  elements.headerContactName.textContent = contact.name;
+  elements.messageInput.focus()
+
+  currentConversation = conv.id;
+  displayMessages(currentConversation);
+}
+
+function sendMessage() {
+  const content = elements.messageInput.value.trim();
+  if (!currentConversation || !content) return;
+
+  const currentUser = chatStorage.getCurrentUser();
+
+  chatStorage.addMessage(currentConversation, {
+    senderId: currentUser.id,
+    content: content,
+    type: "text",
+  });
+
+  elements.messageInput.value = "";
+
+  displayMessages(currentConversation);
+  switchToChatTab()
+  displayConversations();
+}
+
+function switchToChatTab() {
+  const target = document.getElementById("chat-icon");
+  if (target) {
+    setActiveIcon(target);
+    displaySection("chat-icon");
+    localStorage.setItem("activeTab", "chat-icon");
+  }
+}
+
+// Data functions
+async function fetchContacts() {
+  try {
+    const existingContacts = chatStorage.getContacts()
+    cachedContacts = Object.values(existingContacts)
+
+    if(cachedContacts.length > 0)
+      displayContacts(cachedContacts)
+
+    const res = await fetch("contacts.json");
+    const fetchedContacts = await res.json();
+
+    let hasNewContacts = false;
+    fetchedContacts.forEach(contact => {
+      if (!existingContacts[contact.id])
+        chatStorage.addContact(contact);
+      hasNewContacts = true
+    });
+
+    if(hasNewContacts){
+      cachedContacts = Object.values(chatStorage.getContacts())
+      displayContacts(cachedContacts)
+    }
+
+  } catch (error) {
+    console.error("Failed to fetch contacts from JSON:", error);
+    // Fallback to contacts already in storage
+    const existingContacts = chatStorage.getContacts();
+    cachedContacts = Object.values(existingContacts);
+    displayContacts(cachedContacts);
+  }
+}
+
+// App initialization
+window.addEventListener("load", () => {
+  initializeApp()
+  initializeEventListeners()
+
+  // Set active tab
+  const lastActiveIcon = localStorage.getItem("activeTab") || "chat-icon";
+  const target = document.getElementById(lastActiveIcon);
+  if (target) {
+    setActiveIcon(target);
+    displaySection(lastActiveIcon);
+  }
+});
