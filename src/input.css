@@ -15,5 +15,13 @@
 }
 
 .active{
-    @apply bg-gray-300 rounded
+    @apply bg-gray-300 rounded-lg
+}
+
+#main-chat-container header i{
+    @apply text-gray-600 hover:bg-gray-300 cursor-pointer rounded-lg py-5 px-3
+}
+
+#main-chat-container #footer i{
+    @apply text-gray-600 hover:bg-gray-300 cursor-pointer rounded-lg p-2
 }

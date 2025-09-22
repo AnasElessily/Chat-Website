@@ -67,6 +67,7 @@
           >
             <i class="fa-solid fa-magnifying-glass mr-2 text-gray-400"></i>
             <input
+              id="conversations-search"
               type="search"
               placeholder="Search for chat"
               class="focus:outline-none placeholder:text-gray-400"
@@ -92,24 +93,8 @@
           <!-- Chats -->
           <div
             id="chats-sidebar"
-            class="hidden flex flex-col flex-1 overflow-y-auto"
+            class="hidden flex flex-col flex-1 overflow-y-auto space-y-1"
           >
-            <!-- Chat -->
-            <!-- <div
-              class="flex space-x-2 items-center hover:bg-gray-200 p-2 rounded-lg"
-            >
-              <img
-                src="imgs/profile.png"
-                alt=""
-                class="w-12 object-cover rounded-full"
-              />
-              <div class="min-w-0">
-                <h3 class="font-bold">Anas</h3>
-                <p class="opacity-60 truncate">
-                  Eh el akhbarrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
-                </p>
-              </div>
-            </div> -->
           </div>
         </div>
 
@@ -153,7 +138,7 @@
           <!-- Contacts -->
           <div
             id="contacts-sidebar"
-            class="hidden flex flex-col flex-1 overflow-y-auto"
+            class="hidden flex flex-col flex-1 overflow-y-auto space-y-1"
           ></div>
         </div>
       </div>
@@ -191,7 +176,7 @@
               />
               <h3 id="contact-name" class="font-bold"></h3>
             </div>
-            <div class="flex items-center space-x-6">
+            <div class="flex items-center space-x-1">
               <i class="fa-solid fa-phone fa-lg"></i>
               <i class="fa-solid fa-video fa-lg"></i>
               <i class="fa-solid fa-magnifying-glass fa-lg"></i>
@@ -206,7 +191,7 @@
           ></main>
 
           <!-- Message Input -->
-          <div class="flex items-center py-4 w-full space-x-5 px-3">
+          <div id="footer" class="flex items-center py-4 w-full space-x-3 px-3">
             <i class="fa-solid fa-paperclip"></i>
             <i class="fa-regular fa-face-smile"></i>
             <input

@@ -45,6 +45,7 @@ class StorageManager {
 
   addContact(contact) {
     const contacts = this.getContacts();
+
     contacts[contact.id] = {
       id: contact.id,
       name: contact.name,
@@ -54,6 +55,7 @@ class StorageManager {
       status: contact.status || "offline",
     };
     this.setItem(this.keys.contacts, contacts);
+
     return contacts[contact.id];
   }
 
@@ -105,8 +107,8 @@ class StorageManager {
       lastMessage: null,
       unreadCount: 0,
     };
-
     this.setItem(this.keys.conversations, conversations);
+
     return conversations[conversationId];
   }
 
@@ -151,6 +153,7 @@ class StorageManager {
 
     this.setItem(this.keys.messages, messages);
     this.updateConversationLastActivity(conversationId, newMessage);
+
     return newMessage;
   }
 
@@ -204,6 +207,7 @@ const elements = {
   chatsSidebarContainer: document.getElementById("chats-sidebar-container"),
   emptyChatsSidebar: document.getElementById("empty-chats-sidebar"),
   chatsSidebar: document.getElementById("chats-sidebar"),
+  conversationsSearchInput: document.getElementById("conversations-search"),
   // Contacts sidebar
   contactsSidebarContainer: document.getElementById(
     "contacts-sidebar-container"
@@ -250,7 +254,14 @@ function initializeEventListeners() {
   elements.iconsContainer.addEventListener("click", handleNavigationClick);
 
   // Search events
-  elements.contactsSearchInput.addEventListener("input", handleContactsSearch);
+  elements.conversationsSearchInput.addEventListener(
+    "input",
+    debounce(handleConversationsSearch, 300)
+  );
+  elements.contactsSearchInput.addEventListener(
+    "input",
+    debounce(handleContactsSearch, 300)
+  );
 
   // Sidebar events
   elements.chatsSidebar.addEventListener("click", handleChatsSidebarClick);
@@ -271,8 +282,27 @@ function handleNavigationClick(e) {
 
   setActiveIcon(target);
   displaySection(target.id);
+}
 
-  localStorage.setItem("activeTab", target.id);
+function handleConversationsSearch(e) {
+  const value = e.target.value.toLowerCase();
+  const conversations = chatStorage.getConversationsWithLastMessage();
+
+  if (value) {
+    const filteredConversations = conversations.filter((conversation) =>
+      conversation.contactName.toLowerCase().includes(value)
+    );
+    displayConversations(filteredConversations);
+  } else displayConversations(conversations);
+}
+
+function handleChatsSidebarClick(e) {
+  // Find the chat card container
+  const chatDiv = e.target.closest(".chat-card");
+  if (!chatDiv) return; // Clicked outside of a chat card
+
+  openChat(chatDiv.id);
+  setActiveConversation(chatDiv);
 }
 
 function handleContactsSearch(e) {
@@ -285,20 +315,19 @@ function handleContactsSearch(e) {
   } else displayContacts(cachedContacts);
 }
 
-function handleChatsSidebarClick(e) {
-  // Find the chat card container
-  const chatDiv = e.target.closest(".chat-card");
-  if (!chatDiv) return; // Clicked outside of a chat card
-
-  openChat(chatDiv.id);
-}
-
 function handleContactsSidebarClick(e) {
   // Find the contact card container
   const contactDiv = e.target.closest(".contact-card");
   if (!contactDiv) return; // Clicked outside of a contact card
 
-  openChat(contactDiv.id);
+  const contactId = contactDiv.id;
+
+  switchToChatTab();
+  openChat(contactId);
+  clearActiveElements();
+
+  const chatCard = elements.chatsSidebar.querySelector(`[id="${contactId}"]`);
+  if (chatCard) setActiveConversation(chatCard);
 }
 
 function handleMessageKeyPress(e) {
@@ -312,24 +341,25 @@ function setActiveIcon(target) {
 
   // Add active class to the clicked one
   target.classList.add("active");
+
+  chatStorage.setActiveTab(target.id);
 }
 
 function displaySection(id) {
   if (id == "chat-icon") {
     elements.contactsSidebarContainer.classList.add("hidden");
     elements.chatsSidebarContainer.classList.remove("hidden");
-    displayConversations();
+    const conversations = chatStorage.getConversationsWithLastMessage();
+    displayConversations(conversations);
   } else if (id == "contacts-icon") {
     elements.chatsSidebarContainer.classList.add("hidden");
     elements.contactsSidebarContainer.classList.remove("hidden");
-    if (cachedContacts.length === 0)
-      cachedContacts = Object.values(chatStorage.getContacts());
     displayContacts(cachedContacts);
   }
 }
 
 function toggleSection(emptyContainer, filledContainer, items) {
-  if (Object.keys(items).length == 0) {
+  if (items.length == 0) {
     emptyContainer.classList.remove("hidden");
     filledContainer.classList.add("hidden");
   } else {
@@ -338,9 +368,12 @@ function toggleSection(emptyContainer, filledContainer, items) {
   }
 }
 
-function displayConversations() {
-  const conversations = chatStorage.getConversationsWithLastMessage();
+function clearActiveElements() {
+  elements.chatsSidebar.querySelector(".active")?.classList.remove("active");
+  elements.contactsSidebar.querySelector(".active")?.classList.remove("active");
+}
 
+function displayConversations(conversations) {
   toggleSection(
     elements.emptyChatsSidebar,
     elements.chatsSidebar,
@@ -371,7 +404,27 @@ function displayConversations() {
 
     elements.chatsSidebar.innerHTML = "";
     elements.chatsSidebar.appendChild(fragment);
+
+    // Makes sure that the active conversation has the active class
+    if (currentConversation) {
+      const currentConv = chatStorage.getConversation(currentConversation);
+      if (currentConv) {
+        const currentUser = chatStorage.getCurrentUser();
+        const contactId = currentConv.participants.find(
+          (id) => id !== currentUser.id
+        );
+        const activeChat = elements.chatsSidebar.querySelector(
+          `[id="${contactId}"]`
+        );
+        if (activeChat) activeChat.classList.add("active");
+      }
+    }
   }
+}
+
+function setActiveConversation(target) {
+  clearActiveElements();
+  target.classList.add("active");
 }
 
 function displayContacts(contacts) {
@@ -438,12 +491,12 @@ function displayMessages(conversationId) {
     div.innerHTML = `
         <div class="${
           isCurrentUser ? "bg-blue-500 text-white" : "bg-white text-black"
-        } rounded-lg px-3 py-2 space-y-2">
+        } rounded-lg px-3 py-2">
               <p class="break-words">${escapeHtml(message.content)}</p>
               <div class="relative opacity-90 text-right message-time">
                   ${
                     isCurrentUser
-                      ? '<i class="fa-solid fa-check-double mr-1"></i>'
+                      ? '<i class="fa-solid fa-check mr-1"></i>'
                       : ""
                   }
                   <span>${time}</span>
@@ -488,8 +541,6 @@ function sendMessage() {
 
   const currentUser = chatStorage.getCurrentUser();
 
-  elements.sendButton.disabled = true
-
   chatStorage.addMessage(currentConversation, {
     senderId: currentUser.id,
     content: content,
@@ -497,12 +548,9 @@ function sendMessage() {
   });
 
   elements.messageInput.value = "";
-  elements.sendButton.disabled = false
-
-
   displayMessages(currentConversation);
+
   switchToChatTab();
-  displayConversations();
 }
 
 function switchToChatTab() {
@@ -510,7 +558,6 @@ function switchToChatTab() {
   if (target) {
     setActiveIcon(target);
     displaySection("chat-icon");
-    localStorage.setItem("activeTab", "chat-icon");
   }
 }
 
@@ -529,7 +576,7 @@ async function fetchContacts() {
 
     let hasNewContacts = false;
     fetchedContacts.forEach((contact) => {
-      if (!existingContacts[contact.id]){
+      if (!existingContacts[contact.id]) {
         chatStorage.addContact(contact);
         hasNewContacts = true;
       }
@@ -553,6 +600,15 @@ function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Creates a debounced version of a function that delays its execution until after a specified wait time has passed since the last call
+function debounce(func, delay) {
+  let timeoutId;
+  return function (...args) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func.apply(this, args), delay);
+  };
 }
 
 // App initialization
