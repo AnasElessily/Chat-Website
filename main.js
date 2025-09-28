@@ -7,6 +7,7 @@ class StorageManager {
       messages: "messages",
       currentUser: "currentUser",
       activeTab: "activeTab",
+      darkMode: "darkMode",
     };
     this.initializeStorage();
   }
@@ -189,18 +190,61 @@ class StorageManager {
   setActiveTab(tabId) {
     localStorage.setItem(this.keys.activeTab, tabId);
   }
+
+  // Dark mode management
+  getDarkMode() {
+    return localStorage.getItem(this.keys.darkMode) === "true";
+  }
+
+  setDarkMode(enabled) {
+    localStorage.setItem(this.keys.darkMode, enabled.toString());
+    document.documentElement.classList.toggle("dark", enabled); // If enabled is true then it adds dark to classlist else removes it.
+  }
 }
 
 // Global variables initialization
 const chatStorage = new StorageManager();
 let currentConversation = null;
 let cachedContacts = [];
+const sampleMessages = [
+  // 🔹 Short
+  "Hi",
+  "Ok",
+  "Yes",
+  "No",
+  "Cool",
+  "Thanks!",
+  "Great!",
+  "Wow",
+  "Sure",
+  "Done",
+
+  // 🔹 Medium
+  "I’ll meet you at 5.",
+  "What are you doing now?",
+  "I just had lunch, it was great.",
+  "This is a test message for the chat.",
+  "Can you send me the file later today?",
+  "That was really funny 😂",
+  "Let’s go out for coffee tomorrow morning.",
+  "Do you know where my phone is?",
+  "I’ll be there in about 20 minutes.",
+  "The game last night was amazing!",
+
+  // 🔹 Long
+  "This is a much longer message meant to test how the chat bubbles expand vertically when a user sends more text. It should wrap around multiple lines and show that the UI can handle tall messages properly.",
+  "Here’s another long block of text. The quick brown fox jumps over the lazy dog. Repeating phrases like this can make the message stretch out so that we can see how your chat interface handles wrapping, alignment, and spacing.",
+  "Sometimes people write long messages that span several lines because they are telling a story, explaining something in detail, or just typing without stopping. This is one of those tall messages that should really stretch the chat container.",
+  "This is an extremely long message written for the purpose of testing. It doesn’t have to be meaningful, but it should contain enough words and sentences so that you can see how the text wraps, how the scroll behaves, and whether the design looks good with very tall chat bubbles. Ideally, this text should go on for a while, maybe a few sentences, so that you can test the maximum size of a bubble in your UI.",
+  "This is an extremely long message written for the purpose of testing. It doesn’t have to be meaningful, but it should contain enough words and sentences so that you can see how the text wraps, how the scroll behaves, and whether the design looks good with very tall chat bubbles. Ideally, this text should go on for a while, maybe a few sentences, so that you can test the maximum size of a bubble in your UI.This is an extremely long message written for the purpose of testing. It doesn’t have to be meaningful, but it should contain enough words and sentences so that you can see how the text wraps, how the scroll behaves, and whether the design looks good with very tall chat bubbles. Ideally, this text should go on for a while, maybe a few sentences, so that you can test the maximum size of a bubble in your UI.This is an extremely long message written for the purpose of testing. It doesn’t have to be meaningful, but it should contain enough words and sentences so that you can see how the text wraps, how the scroll behaves, and whether the design looks good with very tall chat bubbles. Ideally, this text should go on for a while, maybe a few sentences, so that you can test the maximum size of a bubble in your UI.This is an extremely long message written for the purpose of testing. It doesn’t have to be meaningful, but it should contain enough words and sentences so that you can see how the text wraps, how the scroll behaves, and whether the design looks good with very tall chat bubbles. Ideally, this text should go on for a while, maybe a few sentences, so that you can test the maximum size of a bubble in your UI.gful, but it should contain enough words and sentences so that you can see how the text wraps, how the scroll behaves, and whether the design looks good with very tall chat bubbles. Ideally, this text should go on for a while, maybe a few sentences, so that you can test the maximum size of a bubble in your UI.gful, but it should contain enough words and sentences so that you can see how the text wraps, how the scroll behaves, and whether the design looks good with very tall chat bubbles. Ideally, this text should go on for a while, maybe a few sentences, so that you can test the maximum size of a bubble in your UI.",
+];
 
 // DOM elements cache
 const elements = {
   // Navigation management
   iconsContainer: document.getElementById("icons-container"),
   profileIconImage: document.getElementById("profile-icon-image"),
+  darkModeIcon: document.getElementById("dark-mode-icon"),
 
   // Sidebars
   // Chats sidebar
@@ -222,10 +266,14 @@ const elements = {
   headerContactAvatar: document.getElementById("contact-avatar"),
   headerContactName: document.getElementById("contact-name"),
   chatContentContainer: document.getElementById("chat-content"),
+  botChatContainer: document.getElementById("bot-chat-container"),
+  botChatContentContainer: document.getElementById("bot-chat-content"),
 
   // Message input
   messageInput: document.getElementById("message-input"),
+  botMessageInput: document.getElementById("bot-message-input"),
   sendButton: document.getElementById("send-button"),
+  botSendButton: document.getElementById("bot-send-button"),
 };
 
 // Initialization functions
@@ -242,6 +290,12 @@ function initializeApp() {
   // Set user profile image
   elements.profileIconImage.src = chatStorage.getCurrentUser().avatar;
 
+  // Initialize dark mode
+  const isDarkMode = chatStorage.getDarkMode();
+  chatStorage.setDarkMode(isDarkMode);
+  if(isDarkMode)
+    elements.darkModeIcon.innerHTML = `<i class="fa-solid fa-sun"></i>`
+
   // Load contacts from storage
   cachedContacts = Object.values(chatStorage.getContacts());
 
@@ -252,6 +306,8 @@ function initializeApp() {
 function initializeEventListeners() {
   // Navigation events
   elements.iconsContainer.addEventListener("click", handleNavigationClick);
+
+  elements.darkModeIcon.addEventListener("click", handleDarkModeClick);
 
   // Search events
   elements.conversationsSearchInput.addEventListener(
@@ -273,6 +329,18 @@ function initializeEventListeners() {
   // Message events
   elements.sendButton.addEventListener("click", sendMessage);
   elements.messageInput.addEventListener("keypress", handleMessageKeyPress);
+  elements.botSendButton.addEventListener("click", sendBotMessage);
+  elements.botMessageInput.addEventListener(
+    "keypress",
+    handleBotMessageKeyPress
+  );
+
+  // Simulated message events
+  elements.mainChatContainer.addEventListener(
+    "keydown",
+    handleSimulatedMessage
+  );
+  elements.botChatContainer.addEventListener("keydown", handleSimulatedMessage);
 }
 
 // Event handlers
@@ -284,14 +352,28 @@ function handleNavigationClick(e) {
   displaySection(target.id);
 }
 
+function handleDarkModeClick() {
+  const currentDarkMode = chatStorage.getDarkMode();
+  
+  // Switch between moon and sun icon
+  if(currentDarkMode)
+    elements.darkModeIcon.innerHTML = `<i class="fa-solid fa-moon"></i>`
+  else
+    elements.darkModeIcon.innerHTML = `<i class="fa-solid fa-sun"></i>`
+
+  // Toggle the dark mode
+  chatStorage.setDarkMode(!currentDarkMode);
+}
+
 function handleConversationsSearch(e) {
   const value = e.target.value.toLowerCase();
   const conversations = chatStorage.getConversationsWithLastMessage();
 
   if (value) {
-    const filteredConversations = conversations.filter((conversation) =>
-      conversation.contactName.toLowerCase().includes(value)
-    );
+    const filteredConversations = conversations.filter((conversation) => {
+      if (conversation.contactName)
+        return conversation.contactName.toLowerCase().includes(value);
+    });
     displayConversations(filteredConversations);
   } else displayConversations(conversations);
 }
@@ -334,8 +416,19 @@ function handleMessageKeyPress(e) {
   if (e.key === "Enter") sendMessage();
 }
 
+function handleBotMessageKeyPress(e) {
+  if (e.key === "Enter") sendBotMessage();
+}
+
+function handleSimulatedMessage(e) {
+  if (e.ctrlKey && e.key.toLowerCase() === "m") simulateMessage();
+}
+
 // UI functions
 function setActiveIcon(target) {
+  // We don't want the icon of dark-mode to be active
+  if (target.id == "dark-mode-icon") return;
+
   // Remove active class from the icon that has it
   elements.iconsContainer.querySelector(".active")?.classList.remove("active");
 
@@ -348,13 +441,26 @@ function setActiveIcon(target) {
 function displaySection(id) {
   if (id == "chat-icon") {
     elements.contactsSidebarContainer.classList.add("hidden");
+    elements.botChatContainer.classList.add("hidden");
     elements.chatsSidebarContainer.classList.remove("hidden");
+    if (!currentConversation)
+      elements.emptyChatContainer.classList.remove("hidden");
     const conversations = chatStorage.getConversationsWithLastMessage();
     displayConversations(conversations);
   } else if (id == "contacts-icon") {
     elements.chatsSidebarContainer.classList.add("hidden");
+    elements.botChatContainer.classList.add("hidden");
     elements.contactsSidebarContainer.classList.remove("hidden");
+    if (!currentConversation)
+      elements.emptyChatContainer.classList.remove("hidden");
     displayContacts(cachedContacts);
+  } else if (id == "ai-icon") {
+    elements.chatsSidebarContainer.classList.add("hidden");
+    elements.contactsSidebarContainer.classList.add("hidden");
+    elements.emptyChatContainer.classList.add("hidden");
+    elements.mainChatContainer.classList.add("hidden");
+    elements.botChatContainer.classList.remove("hidden");
+    openChatBot();
   }
 }
 
@@ -380,24 +486,53 @@ function displayConversations(conversations) {
     conversations
   );
 
+  const currentUser = chatStorage.getCurrentUser();
+
   if (conversations.length > 0) {
     const fragment = document.createDocumentFragment();
 
     conversations.forEach((conv) => {
+      if (conv.contactId === "chatbot") return;
+
+      console.log(conv);
+
+      const time = new Date(conv.lastMessage.timestamp).toLocaleTimeString(
+        "en-US",
+        {
+          hour: "2-digit",
+          minute: "2-digit",
+        }
+      );
+
       const div = document.createElement("div");
       div.id = conv.contactId;
       div.className =
-        "chat-card flex space-x-2 items-center hover:bg-gray-200 p-2 rounded-lg cursor-pointer";
+        "chat-card flex items-center hover:bg-gray-200 dark:hover:bg-gray-700 p-3 rounded-lg cursor-pointer w-full";
+
       div.innerHTML = `
         <img src="${
           conv.contactAvatar
-        }" alt="" class="w-12 h-12 object-cover rounded-full"/>
-          <div class="min-w-0">
-            <h3 class="font-bold">${escapeHtml(conv.contactName)}</h3>
-            <p class="opacity-60 truncate">${escapeHtml(
-              conv.lastMessageText
-            )}</p>
-          </div>`;
+        }" alt="" class="w-12 h-12 object-cover rounded-full mr-3"/>
+
+        <div class="flex-1 min-w-0">
+          <div class="flex justify-between items-center">
+            <h3 class="font-bold text-gray-900 dark:text-gray-100 truncate">
+              ${escapeHtml(conv.contactName)}
+            </h3>
+            <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+              ${time}
+            </span>
+          </div>
+          <p class="text-sm text-gray-600 dark:text-gray-400 truncate">
+            ${
+              conv.lastMessage.senderId == currentUser.id
+                ? '<i class="fa-solid fa-check mr-1"></i>'
+                : ""
+            }
+            ${escapeHtml(conv.lastMessageText)}
+          </p>
+        </div>
+      `;
 
       fragment.appendChild(div);
     });
@@ -490,8 +625,10 @@ function displayMessages(conversationId) {
     div.className = isCurrentUser ? "self-end max-w-xs" : "self-start max-w-xs";
     div.innerHTML = `
         <div class="${
-          isCurrentUser ? "bg-blue-500 text-white" : "bg-white text-black"
-        } rounded-lg px-3 py-2">
+          isCurrentUser
+            ? "bg-blue-500 text-white"
+            : "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+        } rounded-lg px-3 py-2 shadow-sm">
               <p class="break-words">${escapeHtml(message.content)}</p>
               <div class="relative opacity-90 text-right message-time">
                   ${
@@ -512,6 +649,54 @@ function displayMessages(conversationId) {
   // Scroll to bottom
   elements.chatContentContainer.scrollTop =
     elements.chatContentContainer.scrollHeight;
+}
+
+function displayBotMessages(conversationId) {
+  const messages = chatStorage.getMessages(conversationId);
+  const currentUser = chatStorage.getCurrentUser();
+
+  if (!messages || messages.length === 0) {
+    elements.botChatContentContainer.innerHTML = ``;
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  messages.forEach((message) => {
+    const isCurrentUser = message.senderId === currentUser.id;
+    const time = new Date(message.timestamp).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const div = document.createElement("div");
+    div.className = isCurrentUser ? "self-end max-w-xs" : "self-start max-w-xs";
+    div.innerHTML = `
+        <div class="${
+          isCurrentUser
+            ? "bg-blue-500 text-white"
+            : "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+        } rounded-lg px-3 py-2 shadow-sm">
+              <p class="break-words">${escapeHtml(message.content)}</p>
+              <div class="relative opacity-90 text-right message-time">
+                  ${
+                    isCurrentUser
+                      ? '<i class="fa-solid fa-check mr-1"></i>'
+                      : ""
+                  }
+                  <span>${time}</span>
+              </div>
+        </div>
+      `;
+    fragment.appendChild(div);
+  });
+
+  elements.botChatContentContainer.innerHTML = "";
+  elements.botChatContentContainer.appendChild(fragment);
+
+  // Scroll to bottom
+  elements.botChatContentContainer.scrollTop =
+    elements.botChatContentContainer.scrollHeight;
 }
 
 // Chat handling functions
@@ -535,6 +720,19 @@ function openChat(contactId) {
   displayMessages(currentConversation);
 }
 
+function openChatBot() {
+  const currentUser = chatStorage.getCurrentUser();
+
+  let conv = chatStorage.findConversationBetween(currentUser.id, "chatbot");
+
+  if (!conv) conv = chatStorage.createConversation([currentUser.id, "chatbot"]);
+
+  elements.botMessageInput.focus();
+
+  currentConversation = conv.id;
+  displayBotMessages(currentConversation);
+}
+
 function sendMessage() {
   const content = elements.messageInput.value.trim();
   if (!currentConversation || !content) return;
@@ -553,12 +751,57 @@ function sendMessage() {
   switchToChatTab();
 }
 
+function sendBotMessage() {
+  const content = elements.botMessageInput.value.trim();
+  if (!currentConversation || !content) return;
+
+  const currentUser = chatStorage.getCurrentUser();
+
+  chatStorage.addMessage(currentConversation, {
+    senderId: currentUser.id,
+    content: content,
+    type: "text",
+  });
+
+  elements.botMessageInput.value = "";
+  displayBotMessages(currentConversation);
+}
+
 function switchToChatTab() {
   const target = document.getElementById("chat-icon");
   if (target) {
     setActiveIcon(target);
     displaySection("chat-icon");
   }
+}
+
+function simulateMessage() {
+  if (!currentConversation) return;
+
+  let content = sampleMessages[genRandomInt(24)];
+
+  const currentUser = chatStorage.getCurrentUser();
+  const conversation = chatStorage.getConversation(currentConversation);
+
+  const senderId = conversation.participants.find(
+    (id) => id !== currentUser.id
+  );
+
+  const newMessage = chatStorage.addMessage(currentConversation, {
+    senderId,
+    content,
+    type: "text",
+    status: "received",
+  });
+
+  if (senderId === "chatbot") displayBotMessages(currentConversation);
+  else {
+    const conversations = chatStorage.getConversationsWithLastMessage();
+    displayMessages(currentConversation);
+    displayConversations(conversations);
+  }
+
+  return newMessage;
 }
 
 // Data functions
@@ -624,3 +867,7 @@ window.addEventListener("load", () => {
     displaySection(lastActiveIcon);
   }
 });
+
+function genRandomInt(max) {
+  return Math.floor(Math.random() * (max + 1));
+}

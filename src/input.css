@@ -2,26 +2,61 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-#icons-container li{
-    @apply cursor-pointer text-gray-600 px-1 rounded hover:bg-gray-300 duration-200
+#icons-container li {
+  @apply cursor-pointer text-gray-600 dark:text-gray-400 px-2 py-1 rounded hover:bg-gray-300 dark:hover:bg-gray-700 duration-200;
 }
 
-#chats-sidebar div{
-    @apply cursor-pointer
+#icons-container li i {
+  @apply text-lg w-[20px] text-center;
 }
 
-#contacts-sidebar div{
-    @apply cursor-pointer
+#chats-sidebar div,
+#contacts-sidebar div {
+  @apply cursor-pointer;
 }
 
-.active{
-    @apply bg-gray-300 rounded-lg
+.active {
+  @apply bg-gray-300 dark:bg-gray-700 rounded-lg;
 }
 
-#main-chat-container header i{
-    @apply text-gray-600 hover:bg-gray-300 cursor-pointer rounded-lg py-5 px-3
+#main-chat-container header i,
+#bot-chat-container header i {
+  @apply text-gray-600 dark:text-gray-400 hover:bg-gray-300 cursor-pointer rounded-lg py-5 px-3;
 }
 
-#main-chat-container #footer i{
-    @apply text-gray-600 hover:bg-gray-300 cursor-pointer rounded-lg p-2
+#main-chat-container #footer i,
+#bot-chat-container #bot-footer i {
+  @apply text-gray-600 dark:text-gray-400 hover:bg-gray-300 cursor-pointer rounded-lg p-2;
+}
+
+/* Scrollbar styling */
+
+/* global.css (or inside a <style> tag) */
+
+/* WebKit browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 6px; /* thin scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; /* invisible track */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.3); /* light thumb */
+  border-radius: 9999px; /* pill shape */
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.5); /* darker on hover */
+}
+
+/* Dark mode adjustments */
+.dark ::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.5);
 }
