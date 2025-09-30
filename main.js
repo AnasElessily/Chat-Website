@@ -580,7 +580,7 @@ function displayContacts(contacts) {
       const div = document.createElement("div");
       div.id = contact.id;
       div.className =
-        "contact-card flex justify-between items-center hover:bg-gray-200 p-2 rounded-lg";
+        "contact-card flex justify-between items-center hover:bg-gray-200 dark:hover:bg-gray-700 p-2 rounded-lg";
 
       div.innerHTML = `
         <div class="flex space-x-2 items-center">
